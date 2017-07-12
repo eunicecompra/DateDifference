@@ -11,24 +11,31 @@ import java.util.regex.Pattern;
 public class DateDifferenceRunner {
 
     public static void main(String[] args) {
-        System.out.println("Hi, there! Please input 2 dates in ''DD MM YYYY, DD MM YYYY'' format," +
-                " and let's calculate the difference.");
-        Scanner scanner = new Scanner(System.in);
-        String datesInput = scanner.nextLine();
-        new DateDifferenceRunner().calculateDifference(datesInput);
+        System.out.println("Hi, there! \n" +
+                "Please input 2 dates in 'DD MM YYYY, DD MM YYYY' format," +
+                " and we will calculate the difference. Or you may key in 'q' to quit.\n\n");
+
+        String input = null;
+        while (input == null || !input.trim().equalsIgnoreCase("q")) {
+            Scanner scanner = new Scanner(System.in);
+            input = scanner.nextLine();
+            if ( input.trim().equalsIgnoreCase("q") ) {
+                break;
+            }
+            new DateDifferenceRunner().calculateDifference(input);
+        }
+
 
     }
 
     public int calculateDifference(String datesInput) {
         DateValidator validator = new DateValidator();
-        DateValidatorMessagesEnum msg = validator.validateInput(datesInput);
+        DateValidatorMessagesEnum msg = validator.validateInput(datesInput.trim());
         if ( msg != null ) {
             System.out.println ( msg.getDisplayMsg() );
         } else {
-            System.out.println ( "Input ok!" );
-
             Pattern patternComma = Pattern.compile(",");
-            String[] datesArray = patternComma.split(datesInput);
+            String[] datesArray = patternComma.split(datesInput.trim());
 
             String startDate = datesArray[0];
             String endDate = datesArray[1].trim(); //With leading space
@@ -45,16 +52,44 @@ public class DateDifferenceRunner {
             int endMonth = Integer.parseInt(endDateArray[1]);
             int endYear = Integer.parseInt(endDateArray[2]);
 
-            int daysOfStartMonth = DateConstants.MONTHS_DAY_ARRAY[startMonth-1] - startDay + 1;
-            int daysRemainingStartYear = calculateDaysRestOfYear(startMonth, startYear);
-            int daysInBetweenYears = calculateDaysInBetweenYears(startYear,endYear);
-            int daysBeforeEndMonth = calculateDaysBeforeEndMonth(endMonth,endYear);
+            int dateDifference = 0;
+
+            //Determine the correct date sequence
+            int day1 = calculateDaysBeforeEndMonth(startMonth, startYear) + startDay + startYear;
+            int day2 = calculateDaysBeforeEndMonth(endMonth, endYear) + endDay + endYear;
+            if (day1 > day2) { //Reorder dates
+                int tmpDay = startDay;
+                int tmpMonth = startMonth;
+                int tmpYear = startYear;
+
+                startDay = endDay;
+                startMonth = endMonth;
+                startYear = endYear;
+
+                endDay = tmpDay;
+                endMonth = tmpMonth;
+                endYear = tmpYear;
+            }
+
+
+            //Calculate date difference
+            int daysOfStartMonth = DateConstants.MONTHS_DAY_ARRAY[startMonth - 1] - startDay + 1;
+            int daysRemainingOfStartYear = calculateDaysRestOfYear(startMonth, startYear);
+            int daysInBetweenYears = calculateDaysInBetweenYears(startYear, endYear);
+            int daysBeforeEndMonth = calculateDaysBeforeEndMonth(endMonth, endYear);
             int daysOfEndMonth = endDay - 1;
 
-            int total = daysOfStartMonth + daysRemainingStartYear + daysInBetweenYears
+            dateDifference = daysOfStartMonth + daysRemainingOfStartYear + daysInBetweenYears
                     + daysBeforeEndMonth + daysOfEndMonth;
+            if ( startYear == endYear ) {
+                dateDifference -= 365;
+            }
 
-            System.out.println ( total );
+            System.out.println (
+                    String.format("%02d",startDay) + " " +  String.format("%02d",startMonth) + " " + startYear + ", " +
+                            String.format("%02d",endDay) + " " +  String.format("%02d",endMonth) + " " + endYear +
+                            ", " + dateDifference
+            );
 
         }
 
