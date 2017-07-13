@@ -13,7 +13,8 @@ public class DateDifferenceRunner {
     public static void main(String[] args) {
         System.out.println("Hi, there! \n" +
                 "Please input 2 dates in 'DD MM YYYY, DD MM YYYY' format," +
-                " and we will calculate the difference. Or you may key in 'q' to quit.\n\n");
+                " and we will calculate the difference. Or you may key in 'q' to quit.");
+        System.out.println("Supported dates are between 1900 and 2010.\n");
 
         String input = null;
         while (input == null || !input.trim().equalsIgnoreCase("q")) {
@@ -22,17 +23,20 @@ public class DateDifferenceRunner {
             if ( input.trim().equalsIgnoreCase("q") ) {
                 break;
             }
-            new DateDifferenceRunner().calculateDifference(input);
+            String displayDateDifference = new DateDifferenceRunner().calculateDifference(input);
+            System.out.println(displayDateDifference);
         }
 
 
     }
 
-    public int calculateDifference(String datesInput) {
+    public String calculateDifference(String datesInput) {
+        String displayDateDifference = null;
+
         DateValidator validator = new DateValidator();
-        DateValidatorMessagesEnum msg = validator.validateInput(datesInput.trim());
+        DateValidatorMessagesEnum msg = validator.validateInput(datesInput);
         if ( msg != null ) {
-            System.out.println ( msg.getDisplayMsg() );
+            displayDateDifference = msg.getDisplayMsg();
         } else {
             Pattern patternComma = Pattern.compile(",");
             String[] datesArray = patternComma.split(datesInput.trim());
@@ -55,9 +59,18 @@ public class DateDifferenceRunner {
             int dateDifference = 0;
 
             //Determine the correct date sequence
-            int day1 = calculateDaysBeforeEndMonth(startMonth, startYear) + startDay + startYear;
-            int day2 = calculateDaysBeforeEndMonth(endMonth, endYear) + endDay + endYear;
-            if (day1 > day2) { //Reorder dates
+            //Interchange if not in the correct sequence
+            boolean reorder = false;
+            if (startYear > endYear ) { //Reorder dates
+                reorder = true;
+            } else if ( startYear == endYear ) {
+                int noOfDaysStartDate = calculateDaysBeforeEndMonth(startMonth, startYear) + startDay;
+                int noOfDaysEndDate = calculateDaysBeforeEndMonth(endMonth, endYear) + endDay;
+                if ( noOfDaysStartDate > noOfDaysEndDate ) {
+                    reorder = true;
+                }
+            }
+            if ( reorder ) {
                 int tmpDay = startDay;
                 int tmpMonth = startMonth;
                 int tmpYear = startYear;
@@ -72,28 +85,40 @@ public class DateDifferenceRunner {
             }
 
 
-            //Calculate date difference
+            //Calculate the date difference by getting the following:
+            //1. No. of days from the start date to the end day of the start month
             int daysOfStartMonth = DateConstants.MONTHS_DAY_ARRAY[startMonth - 1] - startDay + 1;
+            //2. No. of days from next month of the start date to the rest of the year
             int daysRemainingOfStartYear = calculateDaysRestOfYear(startMonth, startYear);
+            //3. No. of days in between the start date year and the end date year
             int daysInBetweenYears = calculateDaysInBetweenYears(startYear, endYear);
+            //4. No. of days from the start of the year to the month before the end date
             int daysBeforeEndMonth = calculateDaysBeforeEndMonth(endMonth, endYear);
+            //5. No. of days of the end month
             int daysOfEndMonth = endDay - 1;
 
+
+            //Sum up everything
             dateDifference = daysOfStartMonth + daysRemainingOfStartYear + daysInBetweenYears
                     + daysBeforeEndMonth + daysOfEndMonth;
+
+            //For the same year, need to subtract the total no. of days of a given year.
             if ( startYear == endYear ) {
-                dateDifference -= 365;
+                if (startYear % 4 == 0) {
+                    dateDifference -= 366;
+                } else {
+                    dateDifference -= 365;
+                }
             }
 
-            System.out.println (
-                    String.format("%02d",startDay) + " " +  String.format("%02d",startMonth) + " " + startYear + ", " +
+
+            displayDateDifference = String.format("%02d",startDay) + " " +  String.format("%02d",startMonth) + " " + startYear + ", " +
                             String.format("%02d",endDay) + " " +  String.format("%02d",endMonth) + " " + endYear +
-                            ", " + dateDifference
-            );
+                            ", " + dateDifference;
 
         }
 
-        return 0;
+        return displayDateDifference;
     }
 
     private int calculateDaysBeforeEndMonth(int month, int year){
@@ -150,7 +175,7 @@ public class DateDifferenceRunner {
             daysInBetweenYears = noOfYearsDiff * 365;
 
             if ( daysInBetweenYears != 0 ) {
-                int noOfLeapYears = ((endYear-1) / 4) - ((startYear-1) / 4);
+                int noOfLeapYears = ((endYear-1) / 4) - (startYear / 4);
                 daysInBetweenYears += noOfLeapYears;
             }
 
